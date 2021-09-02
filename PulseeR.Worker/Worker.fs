@@ -1,19 +1,28 @@
 ﻿namespace Worker
 
 open System
-open System
 open System.Collections.Concurrent
 open System.Reflection
 open System.Runtime.CompilerServices
 open System.Threading
 open Microsoft.Extensions.DependencyInjection
 open Microsoft.Extensions.Hosting
-open Microsoft.Extensions.Configuration
+open Microsoft.Extensions.Options
 open Models
 open System.Threading.Tasks
 open Microsoft.Extensions.Logging
+open Schedule
+
 
 module Worker =
+
+    let trimSecs (dt: DateTime) =
+        DateTime(dt.Year, dt.Month, dt.Day, dt.Hour, dt.Minute, 0)
+
+    let updateMap (scheduleTable : seq<string * Schedule>) timestamp =
+        scheduleTable
+                    |> Seq.map (fun x -> fst x, (snd x).GetLaunchAfter timestamp)
+                    |> Map.ofSeq
 
     let private selectRoutines (a: Assembly) =
         a.GetTypes()
@@ -26,54 +35,93 @@ module Worker =
         |> Seq.map selectRoutines
         |> Seq.reduce (fun x y -> x |> Seq.append y)
 
-    let private extractKeyedRoutine key (a: Assembly [])  =
+    let private extractRoutinesTable (a: Assembly []) =
+        a
+        |> Seq.map selectRoutines
+        |> Seq.reduce (fun x y -> x |> Seq.append y)
+        |> Seq.map (fun x ->
+            (try
+                x.GetCustomAttribute<RoutineKeyAttribute>().Key
+             with _ -> ""),
+            x)
+        |> Seq.filter (fun x -> fst x <> "")
+
+    let private extractKeyedRoutine key (a: Assembly []) =
         a
         |> extractRoutines
         |> Seq.find (fun x -> x.GetCustomAttribute<RoutineKeyAttribute>().Key = key)
 
 
-    type PulseeR(logger: ILogger<PulseeR>,
-                 ops: WorkerOptions,
-                 container: IServiceProvider,
-                 assemblyInfo: RoutinesAssemblyInfo) =
+    let private processRoutine (routineDescriptor: RoutineDescriptor) (container: IServiceProvider) =
+        async {
+            use scope = container.CreateScope()
+
+            let routine =
+                scope.ServiceProvider.GetService(routineDescriptor.Type) :?> IRoutine
+
+            use cts = new CancellationTokenSource()
+            cts.CancelAfter(TimeSpan.FromMilliseconds(float routineDescriptor.Strategy.Timeout))
+            do! routine.ExecuteAsync(cts.Token) |> Async.AwaitTask
+        }
+
+    let private tryProcessRoutine (routineDescriptor: RoutineDescriptor)
+                                  (container: IServiceProvider)
+                                  (logger: ILogger<'a>)
+                                  =
+        async {
+            try
+                do! processRoutine routineDescriptor container
+            with e -> logger.LogInformation(e, "Error occurred while executing {key}", routineDescriptor.Strategy.Key)
+        }
+
+    type PulseeR(logger: ILogger<PulseeR>, ops: WorkerStrategy, container: IServiceProvider) =
         inherit BackgroundService()
 
         override this.ExecuteAsync(stoppingToken) =
-            async { return! this.StartWork stoppingToken this.ServiceMap ops assemblyInfo logger container }
+            async { return! this.StartWork stoppingToken ops logger container }
             |> Async.StartAsTask :> Task
 
-        member this.ServiceMap =
-            ConcurrentDictionary<string, RoutineDescriptor>()
 
         member private _.StartWork stoppingToken
-                                   (servicesMap: ConcurrentDictionary<string, RoutineDescriptor>)
-                                   (ops: WorkerOptions)
-                                   (assemblyInfo: RoutinesAssemblyInfo)
+                                   (ops: WorkerStrategy)
                                    (logger: ILogger<PulseeR>)
                                    (container: IServiceProvider)
                                    =
             async {
-                let sleepTime = ops.SleepMilliseconds
+                let sleepTime =
+                    if ops.SleepMilliseconds = 0 then 5000 else ops.SleepMilliseconds
+
+                let descriptorMap =
+                    ops.Routines
+                    |> Seq.map (fun x -> x.Strategy.Key, x)
+                    |> Map.ofSeq
 
                 logger.LogInformation("Pulsing started with sleep interval {sleep} millis... ", sleepTime)
 
-                while (not stoppingToken.IsCancellationRequested) do
-                    use scope = container.CreateScope()
-                    let toExecute = "MyLol"
+                let scheduleTable =
+                    ops.Routines
+                    |> Seq.map (fun x -> (x.Strategy.Key, Schedule(x.Strategy.Schedule)))
+
+                let mutable nextFireMap = updateMap scheduleTable (DateTime.Now |> trimSecs)
                     
-                    let routineOps = ops.JobOptions |> Seq.tryFind (fun x -> x.Key = toExecute)
-                    match routineOps with
-                    | Some o -> 
-                        let extractFun = extractKeyedRoutine toExecute
-                        let serviceType =
-                            servicesMap.GetOrAdd(toExecute, (fun x -> RoutineDescriptor(assemblyInfo.Assemblies |> extractFun, o)))
-                        
-                        let routine = scope.ServiceProvider.GetService(serviceType.RoutineType) :?> IRoutine
-                        try
-                            do! routine.ExecuteAsync(CancellationToken.None)
-                        with
-                        | e -> logger.LogError(e, "Error occured while executing {key}", toExecute)
-                    | _ -> logger.LogError("Options not found for key {key}", toExecute)
+
+                while (not stoppingToken.IsCancellationRequested) do
+
+                    let now = DateTime.Now |> trimSecs
+
+                    let keysToExecute =
+                        nextFireMap
+                        |> Seq.filter (fun x -> x.Value = now)
+                        |> Seq.map (fun x -> x.Key)
+
+                    let! executed =
+                        keysToExecute
+                        |> Seq.map (fun x -> tryProcessRoutine descriptorMap.[x] container logger)
+                        |> Async.Parallel
+
+                    nextFireMap <- updateMap scheduleTable now
+
+
                     do! Async.Sleep sleepTime
 
                 logger.LogInformation("Pulsing finished. ")
@@ -82,28 +130,31 @@ module Worker =
 
     [<Extension>]
     type HostBuilderExtensions() =
-
-
         /// Add the PulseeR worker
         [<Extension>]
         static member AddPulseeR(builder: IHostBuilder, jobsAssemblies: Assembly []) =
             builder.ConfigureServices(fun hb s ->
                 let config = hb.Configuration
-                let config2 = hb.Configuration.Get<WorkerOptions>()
+                let ops = WorkerStrategy()
+                ops.SleepMilliseconds <- int config.["WorkerOptions:SleepMilliseconds"]
+                ops.Routines <- Array.empty
 
-                let assemblyInfo = RoutinesAssemblyInfo(jobsAssemblies)
-                let ops = WorkerOptions()
-                let sec = config.GetSection(nameof WorkerOptions)
-                config.Bind(ref ops)
+                let routinesTable = jobsAssemblies |> extractRoutinesTable
 
-                let types = jobsAssemblies |> extractRoutines
+                for (k, t) in routinesTable do
+                    try
+                        let str = RoutineStrategy()
+                        str.Concurrency <- int config.[$"WorkerOptions:Routines:{k}:Concurrency"]
+                        str.Key <- k
+                        str.Schedule <- config.[$"WorkerOptions:Routines:{k}:Schedule"]
+                        str.Timeout <- int config.[$"WorkerOptions:Routines:{k}:Timeout"]
 
-                s.AddSingleton<WorkerOptions>(ops) |> ignore
+                        ops.Routines <-
+                            ops.Routines
+                            |> Array.append [| RoutineDescriptor(t, str) |]
 
-                s.AddSingleton<RoutinesAssemblyInfo>(assemblyInfo)
-                |> ignore
+                        s.AddTransient(t) |> ignore
+                    with e -> printf "%s" e.Message
 
-                s.AddHostedService<PulseeR>() |> ignore
-
-                for t in types do
-                    s.AddTransient(t) |> ignore)
+                s.AddSingleton<WorkerStrategy>(ops) |> ignore
+                s.AddHostedService<PulseeR>() |> ignore)
