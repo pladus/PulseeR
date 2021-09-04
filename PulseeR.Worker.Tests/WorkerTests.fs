@@ -21,12 +21,24 @@ type mock() =
     [<DefaultValue>]
     val mutable ThirdCalls: int
 
+    [<DefaultValue>]
+
+    val mutable ForthCalls: int
+
+    [<DefaultValue>]
+    val mutable FifthCalls: int
+
+    [<DefaultValue>]
+    val mutable SixthCalls: int
+
+
 [<RoutineKey("TestRoutineKey")>]
 type testRoutine(mock: mock, logger: ILogger<testRoutine>) =
     interface IRoutine with
-        member this.ExecuteAsync(var0) =
+        member this.ExecuteAsync(ct) =
             async {
                 do! Async.Sleep 5000
+                ct.ThrowIfCancellationRequested()
                 mock.FirstCalls <- mock.FirstCalls + 1
                 logger.LogInformation("testRoutine done")
             }
@@ -35,18 +47,17 @@ type testRoutine(mock: mock, logger: ILogger<testRoutine>) =
 [<RoutineKey("TestRoutineKey2")>]
 type testRoutine2(mock: mock, logger: ILogger<testRoutine2>) =
     interface IRoutine with
-        member this.ExecuteAsync(var0) =
+        member this.ExecuteAsync(ct) =
             async {
                 do! Async.Sleep 5000
                 mock.SecondCalls <- mock.SecondCalls + 1
-
-                raise (Exception("testRoutine2 done"))
+                ct.ThrowIfCancellationRequested()
             }
             |> Async.StartAsTask :> Task
 
-type testRoutine3(mock: mock, logger: ILogger<testRoutine2>) =
+type testRoutine3(mock: mock, logger: ILogger<testRoutine3>) =
     interface IRoutine with
-        member this.ExecuteAsync(var0) =
+        member this.ExecuteAsync(ct) =
             async {
                 do! Async.Sleep 5000
                 mock.ThirdCalls <- mock.ThirdCalls + 1
@@ -55,11 +66,45 @@ type testRoutine3(mock: mock, logger: ILogger<testRoutine2>) =
             }
             |> Async.StartAsTask :> Task
 
+[<RoutineKey("TestRoutineKeyLongSingle")>]
+type testRoutine4(mock: mock, logger: ILogger<testRoutine4>) =
+    interface IRoutine with
+        member this.ExecuteAsync(ct) =
+            async {
+                logger.LogInformation("TestRoutineKeyLongSingle fired")
 
+                mock.ForthCalls <- mock.ForthCalls + 1
+                do! Async.Sleep 600_000
+            }
+            |> Async.StartAsTask :> Task
+
+[<RoutineKey("TestRoutineKeyLongConcurrent")>]
+type testRoutine5(mock: mock, logger: ILogger<testRoutine5>) =
+    interface IRoutine with
+        member this.ExecuteAsync(ct) =
+            async {
+                logger.LogInformation("TestRoutineKeyLongConcurrent fired")
+
+                mock.FifthCalls <- mock.FifthCalls + 1
+                do! Async.Sleep 600_000
+            }
+            |> Async.StartAsTask :> Task
+
+[<RoutineKey("TestRoutineKeyLongConcurrentMore")>]
+type testRoutine6(mock: mock, logger: ILogger<testRoutine6>) =
+    interface IRoutine with
+        member this.ExecuteAsync(ct) =
+            async {
+                logger.LogInformation("TestRoutineKeyLongConcurrentMore fired")
+
+                mock.SixthCalls <- mock.SixthCalls + 1
+                do! Async.Sleep 600_000
+            }
+            |> Async.StartAsTask :> Task
 
 
 [<Test>]
-let should_builds_correctly () =
+let should_run_routines_correctly () =
     let mock = mock ()
 
     let host =
@@ -82,8 +127,14 @@ let should_builds_correctly () =
 
     GC.KeepAlive(t)
 
+    // test scheduling
     Assert.Greater(mock.FirstCalls, 0)
-    Assert.Greater(mock.FirstCalls, 0)
-
     Assert.True(mock.FirstCalls > mock.SecondCalls)
+
+    // test concurrency
+    Assert.AreEqual(3, mock.SixthCalls)
+    Assert.AreEqual(2, mock.FifthCalls)
+    Assert.AreEqual(1, mock.ForthCalls)
+
+    // test routine observing
     Assert.AreEqual(0, mock.ThirdCalls)
