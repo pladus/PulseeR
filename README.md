@@ -6,6 +6,7 @@ But Schedule Package is ready to experimental expluatation now
 
 Get started. At first you need to provide to ConfigrationBuilder (for example through appsettings.json) following options
 ...
+```json
 "WorkerOptions": {
     "SleepMilliseconds": 10000,
     "Routines": {
@@ -21,6 +22,7 @@ Get started. At first you need to provide to ConfigrationBuilder (for example th
       }
     }
   }
+  ```
   ...
   Where:
   - WorkerOptions - root for Pulseer settings. 
