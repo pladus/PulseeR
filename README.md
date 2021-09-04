@@ -14,22 +14,22 @@ It works with C# and F# as well.
 
 ## At first 
 
-You need to provide to ConfigrationBuilder (for example through appsettings.json) following options
+You need to provide to ConfigurationBuilder (for example through appsettings.json) following options
 
 ...
 ```json
 "WorkerOptions": {
     "SleepMilliseconds": 10000,
     "Routines": {
-      "TestRoutineKey": {
+      "YourRoutineKey": {
         "Concurrency": 1,
         "Schedule": "* * * * *",
         "Timeout": 1000
       },
-      "TestRoutineKey2": {
-        "Concurrency": 1,
+      "YourAnotherRoutineKey": {
+        "Concurrency": 3,
         "Schedule": "*/2 * * * *",
-        "Timeout": 1000
+        "Timeout": 2000
       }
     }
   }
@@ -38,8 +38,8 @@ You need to provide to ConfigrationBuilder (for example through appsettings.json
   
   Where:
   - WorkerOptions - root for PulseeR settings. 
-  - SleepMilliseconds - sleep interval between two loop iterations where PulseeR try to search routines to be fired. It not make a lot of sense to settle less than 10000 to that. In Fact minimal crontab time step is one minute. 
-  - Routines - block for your routine customization.
+  - SleepMilliseconds - sleep interval between two loop iterations where PulseeR try to search routines to be fired. It not make a lot of sense to set it up less than 10000. In Fact minimal crontab time step is one minute. 
+  - Routines - block for customization of each of your routines.
   - TestRoutineKey, TestRoutineKey2 - example keys for routines. This key must be same with attribute RoutineKey which is marks your routine.
   - Concurrency - maximum count of parallel instances of routine. 
   - Schedule - Crontab expression for scheduling
@@ -55,7 +55,7 @@ Routines must implement IRoutine Interface and have RoutineKey attribute with va
 
 C#
 ```c#
-[Models.RoutineKeyAttribute("TestRoutineKey")]
+[RoutineKey("YourRoutineKey")]
     public class TestRoutine : IRoutine
     {
         public Task ExecuteAsync(CancellationToken ct)
@@ -66,7 +66,7 @@ C#
 ```
 or F#
 ```f#
-[<RoutineKey("TestRoutineKey")>]
+[<RoutineKey("YourRoutineKey")>]
 type testRoutine() =
     interface IRoutine with
         member this.ExecuteAsync(ct) =
@@ -98,6 +98,6 @@ let host =
 ---
 Known issues:
 - Cron shedule validation is pretty poor
-- Worker can't handle with invalid date like 31 february
+- Worker can't handle with invalid date like february 31
 - Configuration way is only provide from appsettings.json
 
