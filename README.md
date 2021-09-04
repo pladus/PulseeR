@@ -1,10 +1,14 @@
 # PulseeR
-PulseeR is crontab expressions based module for running recurring tasks in ASP .NET Core host
+PulseeR is crontab expressions based module for running recurring tasks in ASP .NET Core host.
 
-A project is in implementation progress now.
-But Schedule Package is ready to experimental expluatation now
+It works with C# and F# as well.
 
-Get started. At first you need to provide to ConfigrationBuilder (for example through appsettings.json) following options
+!! A project is in implementation progress now and not recommended for production. !!
+
+Get started
+---
+
+At first you need to provide to ConfigrationBuilder (for example through appsettings.json) following options
 
 ...
 ```json
@@ -27,24 +31,24 @@ Get started. At first you need to provide to ConfigrationBuilder (for example th
   ...
   
   Where:
-  - WorkerOptions - root for Pulseer settings. 
+  - WorkerOptions - root for PulseeR settings. 
   - SleepMilliseconds - sleep interval between two loop iterations where PulseeR try to search routines to be fired. It not make a lot of sense to settle less than 10000 to that. In Fact minimal crontab time step is one minute. 
-  - Routines - blok for your routine customization.
+  - Routines - block for your routine customization.
   - TestRoutineKey, TestRoutineKey2 - example keys for routines. This key must be same with attribute RoutineKey which is marks your routine.
   - Concurrency - maximum count of parallel instances of routine. 
   - Schedule - Crontab expression for scheduling
-  - Timeout - just routine timeout.
+  - Timeout - timeout for routine execution. 
 
 Second thing you must to know - routines must implement IRoutine Interface and have RoutineKey attribute with value that correspond to Routines element in configuration. For example:
 
 C#
 ```c#
 [Models.RoutineKeyAttribute("TestRoutineKey")]
-    public class TestRoutineKey : Models.IRoutine
+    public class TestRoutine : IRoutine
     {
         public Task ExecuteAsync(CancellationToken ct)
         {
-            // Yor awesome code here
+            // Your awesome code here
         }
     }  
 ```
@@ -55,7 +59,7 @@ type testRoutine() =
     interface IRoutine with
         member this.ExecuteAsync(ct) =
             async {
-                // Yor awesome code here
+                // Your awesome code here
             }
             |> Async.StartAsTask :> Task
 ```
@@ -64,19 +68,22 @@ Last thing - you need to use .AddPulseeR(assembliesToScanForRoutines) extension 
 
 C#
 ```c#
-public static IHostBuilder CreateHostBuilder(string[] args) =>
+var host =
             Host.CreateDefaultBuilder(args)
-                .AddPulseeR(new [] {Assembly.GetEntryAssembly()});
+                .AddPulseeR(new [] {Assembly.GetEntryAssembly()})
+                .Build()
 ```
 or F#
 ```f#
 let host =
         Host
             .CreateDefaultBuilder([||])
-            .AddPulseeR([| typeof<testRoutine>.Assembly |])
+            .AddPulseeR([| Assembly.GetEntryAssembly() |])
             .Build()
 ```
 ---
 Known issues:
-- Routine concurrency ignoring;
-- Not enough logging
+- Cron shedule validation is pretty poor
+- Worker can't handle with invalid date like 31 february
+- Configuration way is only provide from appsettings.json
+
