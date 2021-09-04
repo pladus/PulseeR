@@ -4,13 +4,13 @@ PulseeR is crontab expressions based module for running recurring tasks in ASP .
 
 It works with C# and F# as well.
 
-**A project is in implementation progress now and not recommended for production!
+**A project is in implementation progress now and not recommended for production!**
 
 ---
 # Get started
 
 
-**More examples you can find in PulseeR.Worker.Tests project.
+**More examples you can find in PulseeR.Worker.Tests project.**
 
 At first you need to provide to ConfigrationBuilder (for example through appsettings.json) following options
 
