@@ -6,7 +6,7 @@
         <PackageVersion>0.1.1</PackageVersion>
         <Title>PulseeR.Worker</Title>
         <RootNamespace>PulseeR</RootNamespace>
-        <PackageVersion>0.1.2</PackageVersion>
+        <PackageVersion>0.2.1</PackageVersion>
         <Title>PulseeR.Schedule</Title>
         <Authors>Igor Vladimirovich Khokhlov</Authors>
         <Copyright>Igor Vladimirovich Khokhlov</Copyright>        
