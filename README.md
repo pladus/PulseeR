@@ -5,6 +5,7 @@ A project is in implementation progress now.
 But Schedule Package is ready to experimental expluatation now
 
 Get started. At first you need to provide to ConfigrationBuilder (for example through appsettings.json) following options
+
 ...
 ```json
 "WorkerOptions": {
@@ -24,6 +25,7 @@ Get started. At first you need to provide to ConfigrationBuilder (for example th
   }
   ```
   ...
+  
   Where:
   - WorkerOptions - root for Pulseer settings. 
   - SleepMilliseconds - sleep interval between two loop iterations where PulseeR try to search routines to be fired. It not make a lot of sense to settle less than 10000 to that. In Fact minimal crontab time step is one minute. 
@@ -33,7 +35,8 @@ Get started. At first you need to provide to ConfigrationBuilder (for example th
   - Schedule - Crontab expression for scheduling
   - Timeout - just routine timeout.
 
-Second thing you must to know - routines must implement IRoutine Interface and have RoutineKey attribute with value that correspond to Routines element in configuration. For example
+Second thing you must to know - routines must implement IRoutine Interface and have RoutineKey attribute with value that correspond to Routines element in configuration. For example:
+
 C#
 ```c#
 [Models.RoutineKeyAttribute("TestRoutineKey")]
@@ -58,12 +61,12 @@ type testRoutine() =
 ```
 
 Last thing - you need to use .AddPulseeR(assembliesToScanForRoutines) extension method on IHostBuilder:
+
 C#
 ```c#
 public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
-                .AddPulseeR(new [] {Assembly.GetEntryAssembly()})
-                .ConfigureServices((hostContext, services) => { services.AddHostedService<Worker>(); });
+                .AddPulseeR(new [] {Assembly.GetEntryAssembly()});
 ```
 or F#
 ```f#
