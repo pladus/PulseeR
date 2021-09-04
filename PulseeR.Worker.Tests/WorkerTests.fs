@@ -9,8 +9,7 @@ open Microsoft.Extensions.Hosting
 open Microsoft.Extensions.Logging
 open Models
 open NUnit.Framework
-open Worker
-open Worker.Worker
+open Work
 
 type mock() =
     [<DefaultValue>]
@@ -41,7 +40,7 @@ type testRoutine2(mock: mock, logger: ILogger<testRoutine2>) =
                 do! Async.Sleep 5000
                 mock.SecondCalls <- mock.SecondCalls + 1
 
-                logger.LogInformation("testRoutine2 done")
+                raise (Exception("testRoutine2 done"))
             }
             |> Async.StartAsTask :> Task
 
@@ -82,7 +81,7 @@ let should_builds_correctly () =
     host.Run()
 
     GC.KeepAlive(t)
-    
+
     Assert.Greater(mock.FirstCalls, 0)
     Assert.Greater(mock.FirstCalls, 0)
 

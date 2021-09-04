@@ -1,7 +1,6 @@
 module Models
 
 open System
-open System.Reflection
 open System.Threading
 open System.Threading.Tasks
 
@@ -34,7 +33,7 @@ type IRoutine =
 type RoutineDescriptor(tp, ops) =
     member this.Strategy: RoutineStrategy = ops
     member this.Type: Type = tp
-    
+
 type WorkerStrategy() =
     [<DefaultValue>]
     val mutable Routines: RoutineDescriptor []

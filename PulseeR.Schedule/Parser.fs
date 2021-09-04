@@ -1,13 +1,8 @@
-﻿namespace Parser
-
-open System
-open System.Runtime.CompilerServices
-open System.Text.RegularExpressions
-open DateComponentItems
-
-
-module Parser =
-
+﻿module Parser 
+    open System
+    open System.Runtime.CompilerServices
+    open System.Text.RegularExpressions
+    open DateComponentItems
     [<assembly: InternalsVisibleTo("PulseeR.Schedule.Tests")>]
     do ()
 

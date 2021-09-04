@@ -5,20 +5,27 @@
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <PackageVersion>0.1.1</PackageVersion>
         <Title>PulseeR.Worker</Title>
+        <RootNamespace>PulseeR</RootNamespace>
+        <PackageVersion>0.1.2</PackageVersion>
+        <Title>PulseeR.Schedule</Title>
         <Authors>Igor Vladimirovich Khokhlov</Authors>
-        <Copyright>Igor Vladimirovich Khokhlov</Copyright>
+        <Copyright>Igor Vladimirovich Khokhlov</Copyright>        
+        <PackageLicenseUrl>https://licenses.nuget.org/MIT</PackageLicenseUrl>
+        <PackageTags>Cron Scheduling CronJobs Quartz Crons CronExpressions</PackageTags>
+        <PackageProjectUrl>https://github.com/pladus/PulseeR</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/pladus/PulseeR</RepositoryUrl>
+        <RepositoryType>Git</RepositoryType>
     </PropertyGroup>
 
     <ItemGroup>
         <Compile Include="Models.fs" />
-        <Compile Include="Worker.fs" />
+        <Compile Include="Work.fs" />
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="6.0.0-preview.7.21377.19" />
       <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="5.0.0" />
       <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="5.0.0" />
-      <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="6.0.0-preview.7.21377.19" />
+      <PackageReference Include="PulseeR.Schedule" Version="0.1.2" />
     </ItemGroup>
 
     <ItemGroup>

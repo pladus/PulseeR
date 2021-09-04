@@ -4,11 +4,15 @@
         <TargetFramework>net5.0</TargetFramework>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <RootNamespace>PulseeR</RootNamespace>
-        <PackageVersion>0.1.1</PackageVersion>
+        <PackageVersion>0.1.2</PackageVersion>
         <Title>PulseeR.Schedule</Title>
-        <Copyright>Igor Khokhlov</Copyright>
-        <PackageLicenseUrl>MIT</PackageLicenseUrl>
+        <Authors>Igor Vladimirovich Khokhlov</Authors>
+        <Copyright>Igor Vladimirovich Khokhlov</Copyright>
+        <PackageLicenseUrl>https://licenses.nuget.org/MIT</PackageLicenseUrl>
         <PackageTags>Cron Scheduling CronJobs Quartz Crons CronExpressions</PackageTags>
+        <PackageProjectUrl>https://github.com/pladus/PulseeR</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/pladus/PulseeR</RepositoryUrl>
+        <RepositoryType>Git</RepositoryType>
     </PropertyGroup>
 
     <ItemGroup>

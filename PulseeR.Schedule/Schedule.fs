@@ -1,15 +1,12 @@
-﻿
-module Schedule
+﻿module Schedule
 
 open System
-open Parser
 
 type Schedule(template: string) =
-    
+
     let scheduleTable =
-            Parser.GetLaunchTable(template)
-            |> Seq.toArray
-            
+        Parser.GetLaunchTable(template) |> Seq.toArray
+
     let elInc (allowed: seq<int>) current =
         let found = allowed |> Seq.tryFind ((<) current)
 
