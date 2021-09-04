@@ -12,7 +12,9 @@ It works with C# and F# as well.
 
 **More examples you can find in PulseeR.Worker.Tests project.**
 
-At first you need to provide to ConfigrationBuilder (for example through appsettings.json) following options
+## At first 
+
+You need to provide to ConfigrationBuilder (for example through appsettings.json) following options
 
 ...
 ```json
@@ -43,7 +45,13 @@ At first you need to provide to ConfigrationBuilder (for example through appsett
   - Schedule - Crontab expression for scheduling
   - Timeout - timeout for routine execution. 
 
-Second thing you must to know - routines must implement IRoutine Interface and have RoutineKey attribute with value that correspond to Routines element in configuration. For example:
+## Second 
+
+You need to import PulseeR.Worker from Nuget repository: https://www.nuget.org/packages/PulseeR.Worker
+
+## Third thing 
+
+Routines must implement IRoutine Interface and have RoutineKey attribute with value that correspond to Routines element in configuration. For example:
 
 C#
 ```c#
@@ -68,7 +76,9 @@ type testRoutine() =
             |> Async.StartAsTask :> Task
 ```
 
-Last thing - you need to use .AddPulseeR(assembliesToScanForRoutines) extension method on IHostBuilder:
+## Last thing 
+
+You need to use .AddPulseeR(assembliesToScanForRoutines) extension method on IHostBuilder:
 
 C#
 ```c#
