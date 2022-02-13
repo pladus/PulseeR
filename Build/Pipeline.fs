@@ -35,7 +35,6 @@ type Build() =
         ()
 
 [<Dependency(typeof<Build>)>]
-
 type Test() =
     inherit FrostingTask<Context>()
 

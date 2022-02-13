@@ -9,7 +9,7 @@ open Microsoft.Extensions.Hosting
 open Microsoft.Extensions.Logging
 open Models
 open NUnit.Framework
-open Work
+open HostExtensions
 
 type mock() =
     [<DefaultValue>]
@@ -86,7 +86,7 @@ type testRoutine5(mock: mock, logger: ILogger<testRoutine5>) =
                 logger.LogInformation("TestRoutineKeyLongConcurrent fired")
 
                 mock.FifthCalls <- mock.FifthCalls + 1
-                do! Async.Sleep 600_000
+                do! Async.Sleep 600_000 
             }
             |> Async.StartAsTask :> Task
 
@@ -104,7 +104,7 @@ type testRoutine6(mock: mock, logger: ILogger<testRoutine6>) =
 
 
 [<Test>]
-let should_run_routines_correctly () =
+let ``Should run routines correcrly from config`` () =
     let mock = mock ()
 
     let host =
@@ -118,6 +118,91 @@ let should_run_routines_correctly () =
                 y.Add(ServiceDescriptor(typeof<mock>, mock))
                 |> ignore)
             .AddPulseeR([| typeof<testRoutine>.Assembly |])
+            .Build()
+
+    let t =
+        new Timer((fun _ -> host.StopAsync().Wait()), null, TimeSpan.FromSeconds(180.), TimeSpan.FromSeconds(180.))
+
+    host.Run()
+
+    GC.KeepAlive(t)
+
+    // test scheduling
+    Assert.Greater(mock.FirstCalls, 0)
+    Assert.True(mock.FirstCalls > mock.SecondCalls)
+
+    // test concurrency
+    Assert.AreEqual(3, mock.SixthCalls)
+    Assert.AreEqual(2, mock.FifthCalls)
+    Assert.AreEqual(1, mock.ForthCalls)
+
+    // test routine observing
+    Assert.AreEqual(0, mock.ThirdCalls)
+
+[<Test>]
+let ``Should run routines correcrly from ops object`` () =
+    let mock = mock ()
+
+    let config = new WorkerConfiguration()
+    config.SleepMilliseconds <- uint64 300
+
+    let testRoutine = RoutineStrategy()
+    testRoutine.Key <- "TestRoutineKey"
+    testRoutine.Concurrency <- uint16 1
+    testRoutine.Schedule <- "* * * * *"
+    testRoutine.Timeout <- uint64 8000
+
+    let testRoutine2 = RoutineStrategy()
+    testRoutine2.Key <- "TestRoutineKey2"
+    testRoutine2.Concurrency <-uint16  1
+    testRoutine2.Schedule <- "*/2 * * * *"
+    testRoutine2.Timeout <- uint64 1000
+
+    let testRoutineLongSingle = RoutineStrategy()
+    testRoutineLongSingle.Key <- "TestRoutineKeyLongSingle"
+    testRoutineLongSingle.Concurrency <- uint16 1
+    testRoutineLongSingle.Schedule <- "* * * * *"
+    testRoutineLongSingle.Timeout <- uint64 1000
+
+    let testRoutineLongConcurrent = RoutineStrategy()
+    testRoutineLongConcurrent.Key <- "TestRoutineKeyLongConcurrent"
+    testRoutineLongConcurrent.Concurrency <- uint16 2
+    testRoutineLongConcurrent.Schedule <- "* * * * *"
+    testRoutineLongConcurrent.Timeout <- uint64 1000
+
+    let testRoutineLongConcurrentMore = RoutineStrategy()
+    testRoutineLongConcurrentMore.Key <- "TestRoutineKeyLongConcurrentMore"
+    testRoutineLongConcurrentMore.Concurrency <- uint16 3
+    testRoutineLongConcurrentMore.Schedule <- "* * * * *"
+    testRoutineLongConcurrentMore.Timeout <- uint64 1000
+
+    let testRoutineKeyTimeout = RoutineStrategy()
+    testRoutineKeyTimeout.Key <- "TestRoutineKeyTimeout"
+    testRoutineKeyTimeout.Concurrency <- uint16 1
+    testRoutineKeyTimeout.Schedule <- "* * * * *"
+    testRoutineKeyTimeout.Timeout <- uint64 1000
+
+    config.Routines <- 
+        [|
+        testRoutine;
+        testRoutine2; 
+        testRoutineKeyTimeout; 
+        testRoutineLongConcurrent;
+        testRoutineLongConcurrentMore;
+        testRoutineLongSingle
+        |]
+
+    let host =
+        Host
+            .CreateDefaultBuilder([||])
+            .ConfigureAppConfiguration(fun x ->
+                x.AddJsonFile("appsettings.json", false, true)
+                |> ignore)
+            .ConfigureLogging(fun x -> x.AddConsole() |> ignore)
+            .ConfigureServices(fun x y ->
+                y.Add(ServiceDescriptor(typeof<mock>, mock))
+                |> ignore)
+            .AddPulseeR([| typeof<testRoutine>.Assembly |], config)
             .Build()
 
     let t =
