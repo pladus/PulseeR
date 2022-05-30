@@ -1,7 +1,5 @@
 namespace PulseeR.Worker.Tests
 
-
-
 module Program =
 
     [<EntryPoint>]

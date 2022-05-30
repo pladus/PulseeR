@@ -1,16 +1,10 @@
 module Pipeline
 
-open System
-open System.IO
 open Cake.Common.Tools.DotNetCore.Pack
-open Cake.Core.IO
-open Cake.Core.IO
-open Cake.Core.IO
 open Cake.Core.IO
 open Cake.Frosting
 open Cake.Common.Diagnostics
 open Cake.Common.Tools.DotNetCore
-open Global
 
 type Context(context) =
     inherit FrostingContext(context)
@@ -34,16 +28,16 @@ type Build() =
         context.DotNetCoreBuild ".."
         ()
 
-[<Dependency(typeof<Build>)>]
+[<IsDependentOn(typeof<Build>)>]
 
 type Test() =
     inherit FrostingTask<Context>()
 
     override this.Run context =
-        context.DotNetCoreTest ".."
+       // context.DotNetCoreTest ".."
         ()
 
-[<Dependency(typeof<Test>)>]
+[<IsDependentOn(typeof<Test>)>]
 type Publish() =
     inherit FrostingTask<Context>()
 
@@ -53,17 +47,18 @@ type Publish() =
         ops.OutputDirectory <- context.Environment.WorkingDirectory.Combine <| DirectoryPath "Package"
         ops.IncludeSource <- true
         ops.IncludeSymbols <- true
+        ops.Configuration <- "Release"
         
         context.DotNetCorePack("..", ops)
         ()
 
-[<Dependency(typeof<Publish>)>]
+[<IsDependentOn(typeof<Publish>)>]
 type NugetPush() =
     inherit FrostingTask<Context>()
 
     override this.Run context = ()
 
-[<Dependency(typeof<NugetPush>)>]
+[<IsDependentOn(typeof<NugetPush>)>]
 type Default() =
     inherit FrostingTask<Context>()
     override this.Run _ = ()

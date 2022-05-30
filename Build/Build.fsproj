@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFramework>net5.0</TargetFramework>
+        <TargetFramework>net6.0</TargetFramework>
         <IsPackable>false</IsPackable>
     </PropertyGroup>
 
@@ -13,7 +13,11 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Cake.Frosting" Version="1.2.0" />
+      <PackageReference Include="Cake.Frosting" Version="2.2.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Update="FSharp.Core" Version="6.0.4" />
     </ItemGroup>
 
 </Project>

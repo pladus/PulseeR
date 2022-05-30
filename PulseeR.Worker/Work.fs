@@ -1,7 +1,6 @@
 ﻿module Work
 
 open System
-open System.Collections.Concurrent
 open System.Reflection
 open System.Runtime.CompilerServices
 open System.Threading
@@ -47,7 +46,7 @@ let private processRoutine (routineDescriptor: RoutineDescriptor)
                            (container: IServiceProvider)
                            (stoppingToken: CancellationToken)
                            =
-    async {
+    task {
         use scope = container.CreateScope()
 
         let routine =
@@ -67,7 +66,7 @@ let private tryProcessRoutine (routineDescriptor: RoutineDescriptor)
                               (logger: ILogger<'a>)
                               (stoppingToken: CancellationToken)
                               =
-    async {
+    task {
         try
             logger.LogDebug("{key} fired", routineDescriptor.Strategy.Key)
             do! processRoutine routineDescriptor container stoppingToken
@@ -78,8 +77,7 @@ let private tryProcessRoutine (routineDescriptor: RoutineDescriptor)
 let private buildDataBlock (routineDescriptor: RoutineDescriptor) (container: IServiceProvider) logger stoppingToken =
     let action =
         Func<unit, Task>(fun _ ->
-            tryProcessRoutine routineDescriptor container logger stoppingToken
-            |> Async.StartAsTask :> Task)
+            tryProcessRoutine routineDescriptor container logger stoppingToken)
 
     let ops = ExecutionDataflowBlockOptions()
     ops.BoundedCapacity <- routineDescriptor.Strategy.Concurrency
@@ -96,16 +94,15 @@ type PulseeR(logger: ILogger<PulseeR>, ops: WorkerStrategy, container: IServiceP
     inherit BackgroundService()
 
     override this.ExecuteAsync(stoppingToken) =
-        async { return! this.StartWork stoppingToken ops logger container }
-        |> Async.StartAsTask :> Task
-
+        task { return! this.StartWork stoppingToken ops logger container }
+        
 
     member private _.StartWork stoppingToken
                                (ops: WorkerStrategy)
                                (logger: ILogger<PulseeR>)
                                (container: IServiceProvider)
                                =
-        async {
+        task {
             let sleepTime =
                 if ops.SleepMilliseconds = 0 then 5000 else ops.SleepMilliseconds
 
