@@ -14,6 +14,8 @@ type negativeTestCase(temp: string, error: string) =
     member this.ExpectedResult = error
 
 [<Theory>]
+[<Parallelizable>]
+
 let should_find_next_fire_correctly (case: positiveTestCase) =
     let schedule = Schedule(case.Template)
 

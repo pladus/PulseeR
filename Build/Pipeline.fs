@@ -34,7 +34,7 @@ type Test() =
     inherit FrostingTask<Context>()
 
     override this.Run context =
-       // context.DotNetCoreTest ".."
+        context.DotNetCoreTest ".."
         ()
 
 [<IsDependentOn(typeof<Test>)>]

@@ -4,7 +4,7 @@
 		<TargetFramework>netstandard2.1</TargetFramework>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
         <RootNamespace>PulseeR</RootNamespace>
-		<PackageVersion>0.3.1</PackageVersion>
+		<PackageVersion>0.4.0</PackageVersion>
 		<Title>PulseeR.Schedule</Title>
         <Authors>Igor Vladimirovich Khokhlov</Authors>
         <Copyright>Igor Vladimirovich Khokhlov</Copyright>
