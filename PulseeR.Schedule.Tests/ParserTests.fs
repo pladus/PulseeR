@@ -15,7 +15,7 @@ type negativeTestCase(temp: string, error: string) =
 [<Parallelizable>]
 
 let should_parse_correctly (case: positiveTestCase) =
-    let actual = Parser.GetLaunchTable(case.Template)
+    let actual = Parser.getLaunchTable(case.Template)
     Assert.AreEqual(case.ExpectedResult, actual)
 
 [<SetUp>]

@@ -2,10 +2,29 @@
 
 open System
 
-type Schedule(template: string) =
+type DateTimeKind =
+    | UTC
+    | Local
+    | Offset of byte
+    | City of string
 
+type Schedule(template: string, dtKind: DateTimeKind) =
+
+    let getByCity s =
+        let m = OffsetUtils.cityOffsetMap        
+        let mutable r = 0.
+        if m.TryGetValue (s, &r) then r
+        else failwith $"PulseeR can't parse timezone: Unknown city %s{s}. Try to set offset as float in format 0.00"
+        
+    let getNow =
+        match dtKind with
+        | UTC -> DateTimeOffset DateTime.UtcNow
+        | Local ->  DateTimeOffset DateTime.Now
+        | Offset b ->  DateTimeOffset (DateTime.UtcNow, TimeSpan.FromHours <| float b)
+        | City s -> DateTimeOffset (DateTime.UtcNow, TimeSpan.FromHours <| getByCity s)
+            
     let scheduleTable =
-        Parser.GetLaunchTable(template) |> Seq.toArray
+        Parser.getLaunchTable template |> Seq.toArray
 
     let elInc (allowed: seq<int>) current =
         let found = allowed |> Seq.tryFind ((<) current)
@@ -18,29 +37,34 @@ type Schedule(template: string) =
         let result = (weekDay + x - y) % 7
         if result = 0 then 7 else result
 
-    let rec seekDateWeekly (allowed: seq<int>)
-                           allowedWeekDays
-                           currentDay
-                           currentMonth
-                           currentYear
-                           currentWeekDay
-                           needIncDate
-                           =
+    let rec seekDateWeekly
+        (allowed: seq<int>)
+        allowedWeekDays
+        currentDay
+        currentMonth
+        currentYear
+        currentWeekDay
+        needIncDate
+        =
         let maxDays =
             DateTime.DaysInMonth(currentYear, currentMonth)
 
         let legalDaysAllowed = allowed |> Seq.filter ((>=) maxDays)
 
         let predicate =
-            if needIncDate then fun x -> x > currentDay else fun x -> x >= currentDay
+            if needIncDate then
+                fun x -> x > currentDay
+            else
+                fun x -> x >= currentDay
 
         let found =
             legalDaysAllowed
             |> Seq.filter predicate
             |> Seq.map (fun x -> (x, getCorrectDayOfWeek currentWeekDay x currentDay))
-            |> Seq.tryFind (fun x ->
-                predicate (fst x)
-                && allowedWeekDays |> Seq.exists (fun y -> y = snd x))
+            |> Seq.tryFind
+                (fun x ->
+                    predicate (fst x)
+                    && allowedWeekDays |> Seq.exists (fun y -> y = snd x))
 
         match found with
         | Some x -> (fst x, currentMonth, currentYear)
@@ -48,8 +72,11 @@ type Schedule(template: string) =
             let addDays = (maxDays - currentDay) + 1
             let newWeekDay = (currentWeekDay + addDays) % 7
 
-            let (newYear, newMonth) =
-                if currentMonth = 12 then (currentYear + 1, 1) else (currentYear, currentMonth + 1)
+            let newYear, newMonth =
+                if currentMonth = 12 then
+                    (currentYear + 1, 1)
+                else
+                    (currentYear, currentMonth + 1)
 
             seekDateWeekly allowed allowedWeekDays 1 newMonth newYear newWeekDay false
 
@@ -58,7 +85,10 @@ type Schedule(template: string) =
             DateTime.DaysInMonth(currentYear, currentMonth)
 
         let predicate =
-            if needIncDate then fun x -> x > currentDay else fun x -> x >= currentDay
+            if needIncDate then
+                fun x -> x > currentDay
+            else
+                fun x -> x >= currentDay
 
         let legalDaysAllowed = allowed |> Seq.filter ((>=) maxDays)
 
@@ -68,8 +98,11 @@ type Schedule(template: string) =
         match found with
         | Some x when allowedMonths |> Seq.exists ((=) currentMonth) -> (x, currentMonth, currentYear)
         | _ ->
-            let (newYear, newMonth) =
-                if currentMonth = 12 then (currentYear + 1, 1) else (currentYear, currentMonth + 1)
+            let newYear, newMonth =
+                if currentMonth = 12 then
+                    (currentYear + 1, 1)
+                else
+                    (currentYear, currentMonth + 1)
 
             seekDateMonthly allowed allowedMonths 1 newMonth newYear false
 
@@ -77,9 +110,9 @@ type Schedule(template: string) =
         scheduleTable.[4] |> Seq.toList
         <> DateComponentItems.timeComponents.[4]
 
-    member this.GetNextLaunch() = this.GetLaunchAfter(DateTime.Now)
+    member this.GetNextLaunch() = this.GetLaunchAfter getNow 
 
-    member this.GetLaunchAfter(lastLaunchDatetime: DateTime) =
+    member this.GetLaunchAfter(lastLaunchDatetime: DateTimeOffset) =
         let lastMin = lastLaunchDatetime.Minute
         let lastHour = lastLaunchDatetime.Hour
         let lastDay = lastLaunchDatetime.Day
@@ -87,9 +120,10 @@ type Schedule(template: string) =
         let lastYear = lastLaunchDatetime.Year
 
         let lastDayOfWeek =
-            if lastLaunchDatetime.DayOfWeek = DayOfWeek.Sunday
-            then 7
-            else int lastLaunchDatetime.DayOfWeek
+            if lastLaunchDatetime.DayOfWeek = DayOfWeek.Sunday then
+                7
+            else
+                int lastLaunchDatetime.DayOfWeek
 
         let allowedH =
             scheduleTable.[1] |> Seq.exists ((=) lastHour)
@@ -105,7 +139,7 @@ type Schedule(template: string) =
             || scheduleTable.[4]
                |> Seq.exists ((=) lastDayOfWeek)
 
-        let (nextM, needIncH) =
+        let nextM, needIncH =
             if allowedD
                && allowedH
                && allowedDayOfWeek
@@ -114,27 +148,25 @@ type Schedule(template: string) =
             else
                 (scheduleTable.[0] |> Seq.min, false)
 
-        let (nextH, needIncD) =
-            if needIncH || not allowedH then elInc scheduleTable.[1] lastHour else (lastHour, false)
+        let nextH, needIncD =
+            if needIncH || not allowedH then
+                elInc scheduleTable.[1] lastHour
+            else
+                (lastHour, false)
 
         if dayOfWeekSettled then
-            let (nextD, nextMon, nextYear) =
-                if needIncD || not allowedDayOfWeek || not allowedD
-                then seekDateWeekly
-                         scheduleTable.[2]
-                         scheduleTable.[4]
-                         lastDay
-                         lastMonth
-                         lastYear
-                         lastDayOfWeek
-                         needIncD
-                else (lastDay, lastMonth, lastYear)
+            let nextD, nextMon, nextYear =
+                if needIncD || not allowedDayOfWeek || not allowedD then
+                    seekDateWeekly scheduleTable.[2] scheduleTable.[4] lastDay lastMonth lastYear lastDayOfWeek needIncD
+                else
+                    (lastDay, lastMonth, lastYear)
 
             DateTime(nextYear, nextMon, nextD, nextH, nextM, 0)
         else
-            let (nextD, nextMon, nextYear) =
-                if needIncD || not allowedD || not allowedMon
-                then seekDateMonthly scheduleTable.[2] scheduleTable.[3] lastDay lastMonth lastYear needIncD
-                else (lastDay, lastMonth, lastYear)
+            let nextD, nextMon, nextYear =
+                if needIncD || not allowedD || not allowedMon then
+                    seekDateMonthly scheduleTable.[2] scheduleTable.[3] lastDay lastMonth lastYear needIncD
+                else
+                    (lastDay, lastMonth, lastYear)
 
             DateTime(nextYear, nextMon, nextD, nextH, nextM, 0)

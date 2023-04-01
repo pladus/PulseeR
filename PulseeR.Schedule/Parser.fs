@@ -104,7 +104,7 @@
         | _ -> raise templateIncorrectError
 
     /// Parse the schedule and calculate the time components allowed for firing
-    let internal GetLaunchTable (template: string) =
+    let internal getLaunchTable (template: string) =
         template.Split(' ')
         |> validateLength
         |> Seq.zip timeComponents

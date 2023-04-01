@@ -17,6 +17,7 @@
 
     <ItemGroup>
         <Compile Include="DateComponentItems.fs" />
+        <Compile Include="OffsetUtils.fs" />
         <Compile Include="Parser.fs" />
         <Compile Include="Schedule.fs" />
     </ItemGroup>

@@ -8,7 +8,7 @@
         <RootNamespace>PulseeR</RootNamespace>
         <Title>PulseeR.Schedule</Title>
         <Authors>Igor Vladimirovich Khokhlov</Authors>
-        <Copyright>Igor Vladimirovich Khokhlov</Copyright>        
+        <Copyright>Igor Vladimirovich Khokhlov</Copyright>
         <PackageLicenseUrl>https://licenses.nuget.org/MIT</PackageLicenseUrl>
         <PackageTags>Cron Scheduling CronJobs Quartz Crons CronExpressions</PackageTags>
         <PackageProjectUrl>https://github.com/pladus/PulseeR</PackageProjectUrl>
@@ -17,27 +17,23 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Compile Include="Models.fs" />
-        <Compile Include="Work.fs" />
-        <Compile Include="HostExtensions.fs" />
+        <Compile Include="Models.fs"/>
+        <Compile Include="Work.fs"/>
+        <Compile Include="HostExtensions.fs"/>
     </ItemGroup>
-	<ItemGroup>
-		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="6.0.0" />
-		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.1" />
-		<PackageReference Include="PulseeR.Schedule" Version="0.4.0" />
-	</ItemGroup>
     <ItemGroup>
-      <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="6.0.0" />
-      <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.1" />
-      <PackageReference Include="System.Threading.Tasks.Dataflow" Version="6.0.0" />
+        <PackageReference Include="PulseeR.Schedule" Version="0.4.0"/>
+        <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="6.0.0"/>
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.1"/>
+        <PackageReference Include="System.Threading.Tasks.Dataflow" Version="6.0.0"/>
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\PulseeR.Schedule\PulseeR.Schedule.fsproj" />
+        <ProjectReference Include="..\PulseeR.Schedule\PulseeR.Schedule.fsproj"/>
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Update="FSharp.Core" Version="6.0.4" />
+        <PackageReference Update="FSharp.Core" Version="6.0.4"/>
     </ItemGroup>
 
 </Project>
